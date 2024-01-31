@@ -51,7 +51,7 @@ jobs:
         shell: bash
 
   build:
-    runs-on: macos-14
+    runs-on: ubuntu-latest
     needs: smoke-tests
     strategy:
       fail-fast: false
@@ -76,6 +76,11 @@ jobs:
       GIT_TAG: ${{ needs.smoke-tests.outputs.GIT_TAG }}
 
     steps:
+      - name: Setup docker (if on MacOS)
+        if: runner.os == 'macos'
+        run: |
+          brew install docker
+          colima start
       -
         name: Checkout code
         uses: actions/checkout@v4.1.1
