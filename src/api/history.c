@@ -134,6 +134,8 @@ int api_history_clients(struct ftl_conn *api)
 	for(unsigned int slot = 0; slot < OVERTIME_SLOTS; slot++)
 	{
 		cJSON *item = JSON_NEW_OBJECT();
+		int sum = 0;
+		cJSON *clients = JSON_NEW_ARRAY();
 		JSON_ADD_NUMBER_TO_OBJECT(item, "timestamp", overTime[slot].timestamp);
 
 		// Loop over clients to generate output to be sent to the client
@@ -148,6 +150,16 @@ int api_history_clients(struct ftl_conn *api)
 			// Skip invalid (recycled) clients
 			if(client == NULL)
 				continue;
+
+			sum += client->overTime[slot];
+
+			cJSON *clientitem = JSON_NEW_OBJECT();
+			JSON_REF_STR_IN_OBJECT(clientitem, "name", getstr(client->namepos));
+			JSON_REF_STR_IN_OBJECT(clientitem, "ip", getstr(client->ippos));
+			JSON_ADD_NUMBER_TO_OBJECT(clientitem, "total", client->overTime[slot]);
+			JSON_ADD_BOOL_TO_OBJECT(clientitem, "skipclient", skipclient[clientID]);
+			JSON_ADD_BOOL_TO_OBJECT(clientitem, "id_large", id >= (int)Nc);
+			JSON_ADD_ITEM_TO_ARRAY(clients, clientitem);
 
 			// Skip clients which should be hidden and add them to the "others" counter.
 			// Also skip clients when we reached the maximum number of clients to return
@@ -164,6 +176,12 @@ int api_history_clients(struct ftl_conn *api)
 		JSON_ADD_NUMBER_TO_ARRAY(data, others);
 
 		JSON_ADD_ITEM_TO_OBJECT(item, "data", data);
+		JSON_ADD_ITEM_TO_OBJECT(item, "clients", clients);
+		JSON_ADD_NUMBER_TO_OBJECT(item, "sum", sum);
+		JSON_ADD_NUMBER_TO_OBJECT(item, "total", overTime[slot].total);
+		JSON_ADD_NUMBER_TO_OBJECT(item, "cached", overTime[slot].cached);
+		JSON_ADD_NUMBER_TO_OBJECT(item, "blocked", overTime[slot].blocked);
+		JSON_ADD_NUMBER_TO_OBJECT(item, "forwarded", overTime[slot].forwarded);
 		JSON_ADD_ITEM_TO_ARRAY(history, item);
 	}
 	cJSON *json = JSON_NEW_OBJECT();
