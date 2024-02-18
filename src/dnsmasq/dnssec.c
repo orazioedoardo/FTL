@@ -16,6 +16,7 @@
 */
 
 #include "dnsmasq.h"
+#include "log.h"
 
 #ifdef HAVE_DNSSEC
 
@@ -1533,7 +1534,10 @@ static int prove_non_existence_nsec3(struct dns_header *header, size_t plen, uns
   GETSHORT (iterations, p);
   /* Upper-bound iterations, to avoid DoS. RFC 9276 refers. */
   if (iterations > daemon->limit[LIMIT_NSEC3_ITERS])
+  {
+    logg("NSEC3 iterations %d exceeds set limit %d, failing query to avoid DoS", iterations, daemon->limit[LIMIT_NSEC3_ITERS]);
     return DNSSEC_FAIL_NSEC3_ITERS;
+  }
   
   salt_len = *p++;
   salt = p;
