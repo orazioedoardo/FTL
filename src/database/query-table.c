@@ -489,6 +489,13 @@ int DB_save_queries(sqlite3 *db)
 		db_update_counters(db, total, blocked);
 	}
 
+	// Temporarily unlock shared memory as committing to the database may
+	// take a long time, even more on systems with slow disks or heavy I/O
+	// load. We don't want the shared memory lock to be needlessly helt
+	// during this time to avoid blocking DNS resolution when there is no
+	// need to
+	unlock_shm();
+
 	// Finish prepared statement
 	if((rc = dbquery(db,"END TRANSACTION")) != SQLITE_OK)
 	{
@@ -502,6 +509,9 @@ int DB_save_queries(sqlite3 *db)
 		}
 
 		if(db_opened) dbclose(&db);
+
+		// Re-lock shared memory before returning
+		lock_shm();
 
 		return DB_FAILED;
 	}
@@ -518,6 +528,9 @@ int DB_save_queries(sqlite3 *db)
 	}
 
 	if(db_opened) dbclose(&db);
+
+	// Re-lock shared memory before returning
+	lock_shm();
 
 	return saved;
 }
